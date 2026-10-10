@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -22,7 +23,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .last-sync{color:#94a3b8;font-size:.8rem}.visitor-note{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:-.55rem 0 .9rem;color:#94a3b8;font-size:.76rem}
 .visitor-login-link{padding:0;border:0;background:transparent;color:#64748b;font-size:.76rem;text-decoration:underline;text-underline-offset:2px}.visitor-login-link:hover{color:#334155}
 .add-section{margin-bottom:2rem;padding:1.5rem;border:1px solid #e2e8f0;border-radius:24px;background:#f8fafc}.add-section h2{margin-bottom:1rem;font-size:1.3rem}
-.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.form-group{display:flex;flex-direction:column;gap:6px;min-width:0}.form-group.full{grid-column:1/-1}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.form-group{display:flex;flex-direction:column;gap:6px;min-width:0}.form-group.full{grid-column:1/-1}
 .form-group label{color:#475569;font-size:.78rem;font-weight:700;letter-spacing:.04em}
 .input{width:100%;min-height:44px;padding:.72rem 1rem;border:1px solid #cbd5e1;border-radius:15px;background:#fff;color:#0f172a;outline:none}
 .input:focus{outline:2px solid #93b4ff;outline-offset:1px;border-color:transparent}
@@ -68,9 +69,10 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
     <h2>添加</h2>
     <form class="form-grid" id="addForm">
       <div class="form-group full"><label for="topicInput">课题</label><input class="input" id="topicInput" type="text" autocomplete="off" required></div>
+      <div class="form-group"><label for="nameInput">姓名</label><input class="input" id="nameInput" type="text" autocomplete="off"></div>
       <div class="form-group"><label for="approvalInput">批准</label><input class="input" id="approvalInput" type="text" autocomplete="off"></div>
-      <div class="form-group"><label for="numberInput">编号</label><select class="input" id="numberInput"><option value="">请选择</option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
-      <div class="form-group full"><label for="remarksInput">备注</label><textarea class="input" id="remarksInput" rows="4" placeholder="可直接按 Enter 换行"></textarea></div>
+      <div class="form-group"><label for="numberInput">鉴定</label><select class="input" id="numberInput"><option value=""></option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
+      <div class="form-group full"><label for="remarksInput">备注</label><textarea class="input" id="remarksInput" rows="4"></textarea></div>
       <button class="add-button" type="submit">提交</button>
     </form>
   </section>
@@ -84,8 +86,9 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
     <div class="dialog-scroll">
       <form class="form-grid" id="editForm">
         <div class="form-group full"><label for="editTopic">课题</label><input class="input" id="editTopic" type="text" required></div>
+        <div class="form-group"><label for="editName">姓名</label><input class="input" id="editName" type="text"></div>
         <div class="form-group"><label for="editApproval">批准</label><input class="input" id="editApproval" type="text"></div>
-        <div class="form-group"><label for="editNumber">编号</label><select class="input" id="editNumber"><option value="">请选择</option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
+        <div class="form-group"><label for="editNumber">鉴定</label><select class="input" id="editNumber"><option value=""></option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
         <div class="form-group full"><label for="editRemarks">备注</label><textarea class="input" id="editRemarks" rows="4"></textarea></div>
       </form>
     </div>
@@ -126,7 +129,7 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
   function normalize(raw){
     const src=Array.isArray(raw)?raw:(Array.isArray(raw?.entries)?raw.entries:[]);
     return src.filter(v=>v&&typeof v==='object').map(v=>({
-      id:clean(v.id)||newId(),topic:clean(v.topic),approval:clean(v.approval),
+      id:clean(v.id)||newId(),topic:clean(v.topic),name:clean(v.name),approval:clean(v.approval),
       number:CHOICES.has(clean(v.number))?clean(v.number):'',
       remarks:String(v.remarks??'').replace(/\r\n?/g,'\n').trim()
     })).filter(v=>v.topic);
@@ -134,9 +137,6 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
   let entries=[];
   let settings=store.get('settings',{owner:'',repo:'',file:DATA_FILE,token:''});
   let unlocked=false,dirty=false,syncing=false,editingId='',baseSha=null,autoTimer=null,toastTimer=null;
-
-  // 按“批准”字段进行自然排序：数字优先，字母按顺序排列。
-  // 批准为空的条目排在最后，批准相同时按课题排序。
   const approvalCollator=new Intl.Collator('en',{numeric:true,sensitivity:'base'});
   const topicCollator=new Intl.Collator('zh-CN-u-co-pinyin',{numeric:true});
   const sorted=()=>[...entries].sort((a,b)=>{
@@ -146,7 +146,6 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
     if(!y)return -1;
     return approvalCollator.compare(x,y)||topicCollator.compare(a.topic,b.topic);
   });
-
   function status(type,label){$('statusDot').className='status-dot'+(type?' '+type:'');$('statusText').textContent=label}
   function message(text,type='info'){
     const t=$('toast');t.textContent=text;t.className='toast '+type;
@@ -166,7 +165,7 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
     for(const v of rows){
       const card=make('article','paper-item');card.append(make('div','paper-title',v.topic));
       const meta=make('div','paper-meta');
-      for(const [label,value] of [['批准',v.approval],['编号',v.number],['备注',v.remarks]]){
+      for(const [label,value] of [['姓名',v.name],['批准',v.approval],['鉴定',v.number],['备注',v.remarks]]){
         if(!value)continue;
         const row=make('div','meta-row');row.append(make('span','meta-label',label+'：'));
         row.append(make('span','meta-value',value));meta.append(row);
@@ -187,13 +186,13 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
   }
   function target(){return [settings.owner,settings.repo,settings.file].join('/')}
   function readForm(prefix){
-    const names=prefix==='edit'?['editTopic','editApproval','editNumber','editRemarks']:['topicInput','approvalInput','numberInput','remarksInput'];
-    return {topic:clean($(names[0]).value),approval:clean($(names[1]).value),
-      number:$(names[2]).value,remarks:$(names[3]).value.replace(/\r\n?/g,'\n').trim()};
+    const names=prefix==='edit'?['editTopic','editName','editApproval','editNumber','editRemarks']:['topicInput','nameInput','approvalInput','numberInput','remarksInput'];
+    return {topic:clean($(names[0]).value),name:clean($(names[1]).value),approval:clean($(names[2]).value),
+      number:$(names[3]).value,remarks:$(names[4]).value.replace(/\r\n?/g,'\n').trim()};
   }
   function openEdit(id){
     if(!unlocked)return;const v=entries.find(x=>x.id===id);if(!v)return;
-    editingId=id;$('editTopic').value=v.topic;$('editApproval').value=v.approval;
+    editingId=id;$('editTopic').value=v.topic;$('editName').value=v.name;$('editApproval').value=v.approval;
     $('editNumber').value=v.number;$('editRemarks').value=v.remarks;
     $('editModal').classList.remove('hidden');$('editTopic').focus();
   }
