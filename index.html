@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="fund-data-file" content="fund_data.json">
+<title>Fund</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;padding:2rem 1rem 4rem;background:#f5f7fa;color:#0f172a;font-family:"Times New Roman","Microsoft YaHei","PingFang SC",serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.container{width:min(100%,1100px);margin:auto;padding:2rem 1.8rem;background:#fff;border-radius:32px;box-shadow:0 20px 40px -12px rgba(0,0,0,.15)}
+.page-title{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:1.45rem;padding-bottom:.8rem;border-bottom:2px solid #e8edf4;color:#1e293b;font-size:2.2rem;font-weight:600}
+.cloud-status{display:inline-flex;align-items:center;gap:8px;padding:.35rem .9rem;border-radius:999px;background:#f1f5f9;color:#475569;font-size:.82rem;font-weight:500}
+.status-dot{width:9px;height:9px;border-radius:50%;background:#94a3b8}.status-dot.online{background:#22c55e}.status-dot.offline{background:#ef4444}.status-dot.syncing{background:#f59e0b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:1.7rem;padding-bottom:1rem;border-bottom:1px solid #e8edf4}
+.toolbar-group{display:flex;flex-wrap:wrap;gap:9px}
+.btn{min-height:36px;padding:.45rem 1.1rem;border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;font-size:.86rem;font-weight:650}
+.btn:hover{background:#f1f5f9}.btn:disabled{opacity:.5;cursor:not-allowed}.btn-primary{border-color:#1e293b;background:#1e293b;color:#fff}.btn-primary:hover{background:#0f172a}
+.btn-sync{border-color:#1e40af;background:#1e40af;color:#fff}.btn-sync:hover{background:#1e3a8a}.btn-danger{border-color:#fecaca;background:#fee2e2;color:#991b1b}.btn-danger:hover{background:#fecaca}
+.last-sync{color:#94a3b8;font-size:.8rem}.visitor-note{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:-.55rem 0 .9rem;color:#94a3b8;font-size:.76rem}
+.visitor-login-link{padding:0;border:0;background:transparent;color:#64748b;font-size:.76rem;text-decoration:underline;text-underline-offset:2px}.visitor-login-link:hover{color:#334155}
+.add-section{margin-bottom:2rem;padding:1.5rem;border:1px solid #e2e8f0;border-radius:24px;background:#f8fafc}.add-section h2{margin-bottom:1rem;font-size:1.3rem}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.form-group{display:flex;flex-direction:column;gap:6px;min-width:0}.form-group.full{grid-column:1/-1}
+.form-group label{color:#475569;font-size:.78rem;font-weight:700;letter-spacing:.04em}
+.input{width:100%;min-height:44px;padding:.72rem 1rem;border:1px solid #cbd5e1;border-radius:15px;background:#fff;color:#0f172a;outline:none}
+.input:focus{outline:2px solid #93b4ff;outline-offset:1px;border-color:transparent}
+textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre-wrap}select.input{cursor:pointer}
+.add-button{grid-column:1/-1;width:100%;min-height:46px;margin-top:.2rem;border:0;border-radius:999px;background:#1e293b;color:#fff;font-weight:700}.add-button:hover{background:#0f172a}
+.list-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.8rem;color:#000}.list-header h2{font-size:1.4rem;color:#000}
+.count-badge{min-width:38px;padding:.22rem .8rem;border-radius:999px;background:#e8edf4;color:#000;text-align:center;font-size:.8rem;font-weight:650}
+.papers-list{border:1px solid #e2e8f0;border-radius:20px;overflow:hidden;background:#fff}
+.paper-item{width:100%;max-width:100%;min-width:0;padding:1.15rem 1.2rem .95rem;background:#fff;color:#000;overflow:hidden;user-select:text;-webkit-user-select:text}
+.paper-item+.paper-item{border-top:2px solid #dbe3ed}.paper-item:hover{background:#fafcff}
+.paper-title{margin-bottom:.6rem;color:#1e40af;font-size:1.15rem;font-weight:750;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+.paper-meta{display:grid;gap:.26rem;min-width:0;color:#000}.meta-row{display:flex;align-items:flex-start;gap:.4rem;min-width:0;color:#000;font-size:.9rem;font-weight:400;line-height:1.55;overflow-wrap:anywhere;word-break:break-word}
+.meta-label{flex:0 0 auto;color:#000;font-weight:700}.meta-value{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.paper-actions{display:flex;justify-content:flex-end;min-width:0;color:#000}.edit-btn{flex:0 0 auto;margin-left:auto;padding:0;border:0;border-radius:0;background:transparent;color:#000;font-family:"Times New Roman","Microsoft YaHei","PingFang SC",serif;font-size:.86rem;font-weight:400;line-height:1.55;text-decoration:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.edit-btn:hover,.edit-btn:focus-visible{background:transparent;color:#000;outline:none;text-decoration:none}
+.empty-state{padding:2.8rem 1rem;background:#fafcff;color:#000;text-align:center}
+.overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:rgba(15,23,42,.45);backdrop-filter:blur(5px)}
+.dialog{width:min(100%,700px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));display:flex;flex-direction:column;overflow:hidden;background:#fff;border-radius:26px;box-shadow:0 30px 70px rgba(15,23,42,.28)}
+.dialog-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;padding:1.7rem 1.7rem 1rem;scrollbar-gutter:stable}.dialog h3{margin-bottom:1rem;font-size:1.3rem}
+.dialog-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;padding:.95rem 1.7rem max(.95rem,env(safe-area-inset-bottom));border-top:1px solid #e8edf4;background:#fff}#editDelete{margin-right:auto}.dialog-actions .btn{flex:0 0 auto}
+.dialog-desc{margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:.86rem;line-height:1.6}
+.toast{position:fixed;left:50%;bottom:28px;z-index:1500;max-width:min(90vw,680px);padding:.78rem 1.5rem;transform:translateX(-50%);border-radius:999px;background:#1e40af;color:#fff;font-size:.88rem;font-weight:600;text-align:center;box-shadow:0 12px 34px rgba(15,23,42,.25)}
+.toast.success{background:#16a34a}.toast.error{background:#dc2626}.toast.info{background:#1e40af}
+.back-to-top{position:fixed;right:16px;top:70%;transform:translateY(-50%);z-index:900;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:#1e40af;color:#fff;font-size:0;line-height:1;opacity:0;visibility:hidden;pointer-events:none;transition:.05s}.back-to-top.visible{opacity:.55;visibility:visible;pointer-events:auto}.back-to-top:hover{opacity:1}
+@media(max-width:700px){html,body{width:100%;max-width:100%;overflow-x:hidden}body{padding:.8rem}.container{width:100%;max-width:100%;min-width:0;padding:1.25rem;border-radius:22px}.papers-list,.paper-item{width:100%;max-width:100%;min-width:0}.paper-item{padding:1rem}.paper-title,.paper-meta,.meta-row{max-width:100%;min-width:0;overflow-wrap:anywhere;word-break:break-word}.page-title{font-size:1.8rem}.toolbar{flex-direction:column;align-items:stretch}.toolbar-group{justify-content:center}.last-sync{text-align:center}.add-section{padding:1.2rem}.form-grid{grid-template-columns:1fr}.form-group.full,.add-button{grid-column:auto}.dialog{width:100%;max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:20px}.dialog-scroll{padding:1.2rem 1.2rem .8rem}.dialog-actions{padding:.85rem 1.2rem max(.85rem,env(safe-area-inset-bottom))}.back-to-top{right:3px;top:70%;width:24px;height:24px;font-size:.7rem}}
+</style>
+</head>
+<body>
+<main class="container">
+  <h1 class="page-title">Fund <span class="cloud-status"><span class="status-dot" id="statusDot"></span><span id="statusText">公开浏览</span></span></h1>
+  <section class="toolbar">
+    <div class="toolbar-group">
+      <button class="btn btn-sync" id="syncBtn" type="button" disabled>同步</button>
+      <button class="btn" id="configBtn" type="button">编辑登录</button>
+      <button class="btn" id="exportBtn" type="button" disabled>导出</button>
+      <button class="btn" id="importBtn" type="button" disabled>导入</button>
+      <input type="file" id="fileInput" accept=".json,application/json" hidden>
+    </div>
+    <span class="last-sync" id="lastSyncTime">正在加载公开内容…</span>
+  </section>
+  <section class="visitor-note" id="visitorNote"><button class="visitor-login-link" id="visitorLoginBtn" type="button">编辑登录</button></section>
+  <section class="add-section hidden" id="editorSection">
+    <h2>添加</h2>
+    <form class="form-grid" id="addForm">
+      <div class="form-group full"><label for="topicInput">课题</label><input class="input" id="topicInput" type="text" autocomplete="off" required></div>
+      <div class="form-group"><label for="approvalInput">批准</label><input class="input" id="approvalInput" type="text" autocomplete="off"></div>
+      <div class="form-group"><label for="numberInput">编号</label><select class="input" id="numberInput"><option value="">请选择</option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
+      <div class="form-group full"><label for="remarksInput">备注</label><textarea class="input" id="remarksInput" rows="4" placeholder="可直接按 Enter 换行"></textarea></div>
+      <button class="add-button" type="submit">提交</button>
+    </form>
+  </section>
+  <section>
+    <div class="list-header"><h2>总表</h2><span class="count-badge" id="countDisplay">0/0</span></div>
+    <div class="papers-list" id="fundList"><div class="empty-state">暂无记录</div></div>
+  </section>
+</main>
+<section class="overlay hidden" id="editModal" role="dialog" aria-modal="true" aria-label="编辑条目">
+  <div class="dialog">
+    <div class="dialog-scroll">
+      <form class="form-grid" id="editForm">
+        <div class="form-group full"><label for="editTopic">课题</label><input class="input" id="editTopic" type="text" required></div>
+        <div class="form-group"><label for="editApproval">批准</label><input class="input" id="editApproval" type="text"></div>
+        <div class="form-group"><label for="editNumber">编号</label><select class="input" id="editNumber"><option value="">请选择</option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
+        <div class="form-group full"><label for="editRemarks">备注</label><textarea class="input" id="editRemarks" rows="4"></textarea></div>
+      </form>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn btn-danger" id="editDelete" type="button">删除</button>
+      <button class="btn" id="editCancel" type="button">取消</button>
+      <button class="btn btn-primary" id="editSave" type="button">保存</button>
+    </div>
+  </div>
+</section>
+<section class="overlay hidden" id="configModal" role="dialog" aria-modal="true" aria-labelledby="configHeading">
+  <form class="dialog" id="configForm" autocomplete="on">
+    <div class="dialog-scroll">
+      <h3 id="configHeading">GitHub 登录配置</h3>
+      <p class="dialog-desc">浏览 Fund 不需要 Token。Token 仅用于新增、编辑、删除、导入和同步。公开数据文件默认为 fund_data.json。</p>
+      <div class="form-group" style="margin-bottom:.9rem"><label for="cfgOwner">仓库所有者</label><input class="input" id="cfgOwner" type="text" autocomplete="username" required></div>
+      <div class="form-group" style="margin-bottom:.9rem"><label for="cfgRepo">仓库名称</label><input class="input" id="cfgRepo" type="text" autocomplete="off" required></div>
+      <div class="form-group" style="margin-bottom:.9rem"><label for="cfgFile">数据文件路径</label><input class="input" id="cfgFile" type="text" value="fund_data.json" required></div>
+      <div class="form-group" style="margin-bottom:.9rem"><label for="cfgToken">GitHub Personal Access Token</label><input class="input" id="cfgToken" type="password" autocomplete="current-password" spellcheck="false" required></div>
+      <p class="dialog-desc" style="margin:0;padding:0;border:0">Token 将保存在本设备浏览器中，用于后续编辑登录。请勿在公共设备上保存 Token。</p>
+    </div>
+    <div class="dialog-actions"><button class="btn" id="configCancel" type="button">取消</button><button class="btn btn-primary" type="submit">保存并登录</button></div>
+  </form>
+</section>
+<button class="back-to-top" id="backToTopBtn" type="button" aria-label="回到顶部">↑</button>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+<script>
+(()=>{
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const DATA_FILE=document.querySelector('meta[name="fund-data-file"]').content;
+  const KEY='fund_app_v1:'+location.pathname;
+  const CHOICES=new Set(['','优秀','良好','合格','免于鉴定']);
+  const store={get(k,fallback=null){try{const value=localStorage.getItem(KEY+':'+k);return value===null?fallback:JSON.parse(value)}catch{return fallback}},set(k,v){try{localStorage.setItem(KEY+':'+k,JSON.stringify(v));return true}catch{return false}}};
+  const clean=v=>String(v??'').trim();
+  const newId=()=>globalThis.crypto?.randomUUID?.()||('fund_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+  const make=(tag,cls,value)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=value;return e};
+  function normalize(raw){
+    const src=Array.isArray(raw)?raw:(Array.isArray(raw?.entries)?raw.entries:[]);
+    return src.filter(v=>v&&typeof v==='object').map(v=>({
+      id:clean(v.id)||newId(),topic:clean(v.topic),approval:clean(v.approval),
+      number:CHOICES.has(clean(v.number))?clean(v.number):'',
+      remarks:String(v.remarks??'').replace(/\r\n?/g,'\n').trim()
+    })).filter(v=>v.topic);
+  }
+  let entries=[];
+  let settings=store.get('settings',{owner:'',repo:'',file:DATA_FILE,token:''});
+  let unlocked=false,dirty=false,syncing=false,editingId='',baseSha=null,autoTimer=null,toastTimer=null;
+
+  // 按“批准”字段进行自然排序：数字优先，字母按顺序排列。
+  // 批准为空的条目排在最后，批准相同时按课题排序。
+  const approvalCollator=new Intl.Collator('en',{numeric:true,sensitivity:'base'});
+  const topicCollator=new Intl.Collator('zh-CN-u-co-pinyin',{numeric:true});
+  const sorted=()=>[...entries].sort((a,b)=>{
+    const x=clean(a.approval),y=clean(b.approval);
+    if(!x&&!y)return topicCollator.compare(a.topic,b.topic);
+    if(!x)return 1;
+    if(!y)return -1;
+    return approvalCollator.compare(x,y)||topicCollator.compare(a.topic,b.topic);
+  });
+
+  function status(type,label){$('statusDot').className='status-dot'+(type?' '+type:'');$('statusText').textContent=label}
+  function message(text,type='info'){
+    const t=$('toast');t.textContent=text;t.className='toast '+type;
+    clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.add('hidden'),3800);
+  }
+  function access(on){
+    unlocked=!!on;$('editorSection').classList.toggle('hidden',!on);
+    $('visitorNote').classList.toggle('hidden',!!on);
+    $('syncBtn').disabled=!on;$('importBtn').disabled=!on;
+    $('configBtn').textContent=on?'配置':'编辑登录';
+  }
+  function render(){
+    const list=$('fundList');list.replaceChildren();
+    const rows=sorted();$('countDisplay').textContent=rows.length+'/'+rows.length;
+    $('exportBtn').disabled=!rows.length;
+    if(!rows.length){list.append(make('div','empty-state','暂无记录'));return}
+    for(const v of rows){
+      const card=make('article','paper-item');card.append(make('div','paper-title',v.topic));
+      const meta=make('div','paper-meta');
+      for(const [label,value] of [['批准',v.approval],['编号',v.number],['备注',v.remarks]]){
+        if(!value)continue;
+        const row=make('div','meta-row');row.append(make('span','meta-label',label+'：'));
+        row.append(make('span','meta-value',value));meta.append(row);
+      }
+      card.append(meta);
+      if(unlocked){
+        const actions=make('div','paper-actions'),btn=make('button','edit-btn','编辑');
+        btn.type='button';btn.addEventListener('click',()=>openEdit(v.id));
+        actions.append(btn);card.append(actions);
+      }
+      list.append(card);
+    }
+  }
+  function changed(){
+    dirty=true;store.set('working',{entries,dirty:true,sha:baseSha,target:target()});
+    render();$('lastSyncTime').textContent='有未同步修改';status('offline','有未同步修改');
+    if(unlocked){clearTimeout(autoTimer);autoTimer=setTimeout(()=>sync(false),800)}
+  }
+  function target(){return [settings.owner,settings.repo,settings.file].join('/')}
+  function readForm(prefix){
+    const names=prefix==='edit'?['editTopic','editApproval','editNumber','editRemarks']:['topicInput','approvalInput','numberInput','remarksInput'];
+    return {topic:clean($(names[0]).value),approval:clean($(names[1]).value),
+      number:$(names[2]).value,remarks:$(names[3]).value.replace(/\r\n?/g,'\n').trim()};
+  }
+  function openEdit(id){
+    if(!unlocked)return;const v=entries.find(x=>x.id===id);if(!v)return;
+    editingId=id;$('editTopic').value=v.topic;$('editApproval').value=v.approval;
+    $('editNumber').value=v.number;$('editRemarks').value=v.remarks;
+    $('editModal').classList.remove('hidden');$('editTopic').focus();
+  }
+  function closeEdit(){editingId='';$('editModal').classList.add('hidden')}
+  $('addForm').addEventListener('submit',e=>{
+    e.preventDefault();if(!unlocked)return;
+    const v=readForm('');if(!v.topic){message('请填写课题','error');return}
+    entries.push({id:newId(),...v});$('addForm').reset();changed();message('已添加','success');
+  });
+  $('editSave').addEventListener('click',()=>{
+    if(!unlocked||!editingId)return;
+    const v=readForm('edit');if(!v.topic){message('请填写课题','error');return}
+    const i=entries.findIndex(x=>x.id===editingId);if(i<0)return;
+    entries[i]={...entries[i],...v};closeEdit();changed();message('已保存','success');
+  });
+  $('editDelete').addEventListener('click',()=>{
+    if(!unlocked||!editingId||!confirm('确定删除这条记录吗？'))return;
+    entries=entries.filter(x=>x.id!==editingId);closeEdit();changed();message('已删除','success');
+  });
+  $('editCancel').addEventListener('click',closeEdit);
+  $('editForm').addEventListener('submit',e=>{e.preventDefault();$('editSave').click()});
+  $('editModal').addEventListener('click',e=>{if(e.target===$('editModal'))closeEdit()});
+  function pathPart(path){return path.split('/').filter(Boolean).map(encodeURIComponent).join('/')}
+  async function api(method,endpoint='',payload){
+    const url='https://api.github.com/repos/'+encodeURIComponent(settings.owner)+'/'+encodeURIComponent(settings.repo)+(endpoint?'/'+endpoint:'');
+    const headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+settings.token,'X-GitHub-Api-Version':'2022-11-28'};
+    if(payload!==undefined)headers['Content-Type']='application/json';
+    const res=await fetch(url,{method,headers,...(payload===undefined?{}:{body:JSON.stringify(payload)})});
+    let obj={};try{obj=await res.json()}catch{}
+    if(!res.ok){const err=new Error(obj.message||'HTTP '+res.status);err.status=res.status;throw err}
+    return obj;
+  }
+  function decode64(s){const bytes=Uint8Array.from(atob(s.replace(/\s/g,'')),c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+  function encode64(s){const bytes=new TextEncoder().encode(s);let out='';for(let i=0;i<bytes.length;i+=8192)out+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(out)}
+  async function remote(){
+    try{
+      const item=await api('GET','contents/'+pathPart(settings.file));
+      if(item.type!=='file'||!item.content)throw Error('云端数据文件格式异常');
+      return {entries:normalize(JSON.parse(decode64(item.content))),sha:item.sha};
+    }catch(e){if(e.status===404)return {entries:[],sha:null};throw e}
+  }
+  async function login(){
+    status('syncing','验证编辑权限…');
+    try{
+      await api('GET');const r=await remote();
+      const work=store.get('working');
+      if(work?.dirty&&work.target===target()){
+        entries=normalize(work.entries);baseSha=work.sha??null;dirty=true;
+        $('lastSyncTime').textContent='已恢复本机未同步修改';
+      }else{
+        entries=r.entries;baseSha=r.sha;dirty=false;
+        store.set('working',{entries,dirty:false,sha:baseSha,target:target()});
+        $('lastSyncTime').textContent='已读取云端数据';
+      }
+      access(true);render();status(dirty?'offline':'online',dirty?'有未同步修改':'编辑已登录');
+      if(dirty)message('已恢复未同步数据，请检查后同步','info');
+      else message('编辑登录成功','success');
+      return true;
+    }catch(e){access(false);status('offline','编辑登录失败');message('登录失败：'+e.message,'error');return false}
+  }
+  async function sync(interactive=true){
+    if(!unlocked||syncing)return;
+    syncing=true;$('syncBtn').disabled=true;status('syncing','同步中…');
+    try{
+      const r=await remote();
+      if(!dirty){entries=r.entries;baseSha=r.sha;render();}
+      else{
+        if(r.sha!==baseSha){
+          if(!interactive){status('offline','同步冲突');$('lastSyncTime').textContent='云端已有新修改，请手动点击“同步”';return}
+          if(!confirm('云端数据自上次读取后发生变化。确定用当前本机记录覆盖云端吗？')){
+            status('offline','同步已取消');return;
+          }
+        }
+        const json=JSON.stringify({schemaVersion:1,entries},null,2);
+        if(new TextEncoder().encode(json).length>900*1024)throw Error('数据超过 900 KB');
+        const payload={message:'更新 Fund 数据 - '+new Date().toLocaleString(),content:encode64(json)};
+        if(r.sha)payload.sha=r.sha;
+        const out=await api('PUT','contents/'+pathPart(settings.file),payload);
+        baseSha=out.content?.sha??null;dirty=false;
+      }
+      store.set('working',{entries,dirty:false,sha:baseSha,target:target()});
+      status('online','编辑已登录');$('lastSyncTime').textContent='上次同步：'+new Date().toLocaleString();
+      if(interactive)message('同步成功','success');
+    }catch(e){status('offline','同步失败');$('lastSyncTime').textContent='同步失败 · 本机修改仍保留';if(interactive)message('同步失败：'+e.message,'error')}
+    finally{syncing=false;$('syncBtn').disabled=!unlocked}
+  }
+  function openConfig(){
+    $('cfgOwner').value=settings.owner;$('cfgRepo').value=settings.repo;
+    $('cfgFile').value=settings.file||DATA_FILE;$('cfgToken').value=settings.token;
+    $('configModal').classList.remove('hidden');
+  }
+  function closeConfig(){$('configModal').classList.add('hidden')}
+  $('configForm').addEventListener('submit',async e=>{
+    e.preventDefault();const next={owner:clean($('cfgOwner').value),repo:clean($('cfgRepo').value),file:clean($('cfgFile').value),token:clean($('cfgToken').value)};
+    if(!Object.values(next).every(Boolean)){message('请完整填写登录配置','error');return}
+    if(dirty&&[next.owner,next.repo,next.file].join('/')!==target()&&!confirm('当前有未同步修改，切换仓库可能使其不再显示。仍要切换吗？'))return;
+    settings=next;store.set('settings',settings);closeConfig();await login();
+  });
+  $('configCancel').addEventListener('click',closeConfig);
+  $('configBtn').addEventListener('click',openConfig);$('visitorLoginBtn').addEventListener('click',openConfig);
+  $('syncBtn').addEventListener('click',()=>sync(true));
+  $('exportBtn').addEventListener('click',()=>{
+    const blob=new Blob([JSON.stringify({schemaVersion:1,entries},null,2)],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='fund_data_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  });
+  $('importBtn').addEventListener('click',()=>$('fileInput').click());
+  $('fileInput').addEventListener('change',async e=>{
+    const file=e.target.files?.[0];e.target.value='';if(!file||!unlocked)return;
+    try{
+      const obj=JSON.parse(await file.text());
+      if(!Array.isArray(obj)&&!Array.isArray(obj?.entries))throw Error('文件不包含 entries 数组');
+      const incoming=normalize(obj);
+      if(!confirm('确定导入 '+incoming.length+' 条记录，并替换当前列表吗？'))return;
+      entries=incoming;changed();message('导入成功，正在同步','success');
+    }catch(err){message('导入失败：'+err.message,'error')}
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){$('editModal').classList.add('hidden');closeConfig()}
+  });
+  $('backToTopBtn').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+  addEventListener('scroll',()=>$('backToTopBtn').classList.toggle('visible',scrollY>260),{passive:true});
+  async function init(){
+    access(false);render();status('syncing','加载公开内容…');
+    try{
+      const response=await fetch(new URL(DATA_FILE,location.href),{cache:'no-store'});
+      if(!response.ok)throw Error('HTTP '+response.status);
+      entries=normalize(await response.json());store.set('public',entries);
+      status('online','公开浏览');$('lastSyncTime').textContent='公开浏览 · 编辑需 Token';
+    }catch{
+      entries=normalize(store.get('public',[]));
+      status('offline',entries.length?'离线浏览':'公开数据不可用');
+      $('lastSyncTime').textContent=entries.length?'当前显示本机缓存':'未找到 fund_data.json · 可通过编辑登录创建';
+    }
+    render();
+    if(settings.owner&&settings.repo&&settings.file&&settings.token)await login();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
