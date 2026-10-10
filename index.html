@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -36,7 +37,7 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
 .paper-title{margin-bottom:.6rem;color:#1e40af;font-size:1.15rem;font-weight:750;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
 .paper-meta{display:grid;gap:.26rem;min-width:0;color:#000}.meta-row{display:flex;align-items:flex-start;gap:.4rem;min-width:0;color:#000;font-size:.9rem;font-weight:400;line-height:1.55;overflow-wrap:anywhere;word-break:break-word}
 .meta-label{flex:0 0 auto;color:#000;font-weight:700}.meta-value{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
-.paper-actions{display:flex;justify-content:flex-end;min-width:0;color:#000}.meta-row .paper-actions{flex:0 0 auto;margin-left:auto}.paper-title.title-inline-edit{display:flex;align-items:flex-start;gap:.7rem}.paper-title.title-inline-edit .title-text{flex:1 1 auto;min-width:0}.paper-title.title-inline-edit .paper-actions{margin-left:auto}.edit-btn{flex:0 0 auto;margin-left:auto;padding:0;border:0;border-radius:0;background:transparent;color:#000;font-family:"Times New Roman","Microsoft YaHei","PingFang SC",serif;font-size:.86rem;font-weight:400;line-height:1.55;text-decoration:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.paper-actions{display:flex;justify-content:flex-end;min-width:0;color:#000}.meta-row .paper-actions{flex:0 0 auto;margin-left:auto;align-self:center}.paper-title.title-inline-edit{display:flex;align-items:flex-start;gap:.7rem}.paper-title.title-inline-edit .title-text{flex:1 1 auto;min-width:0}.paper-title.title-inline-edit .paper-actions{margin-left:auto}.edit-btn{flex:0 0 auto;margin-left:auto;padding:0;border:0;border-radius:0;background:transparent;color:#000;font-family:"Times New Roman","Microsoft YaHei","PingFang SC",serif;font-size:.86rem;font-weight:400;line-height:1.55;text-decoration:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .edit-btn:hover,.edit-btn:focus-visible{background:transparent;color:#000;outline:none;text-decoration:none}
 .empty-state{padding:2.8rem 1rem;background:#fafcff;color:#000;text-align:center}
 .overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:rgba(15,23,42,.45);backdrop-filter:blur(5px)}
@@ -71,12 +72,12 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
       <div class="form-group"><label for="nameInput">姓名</label><input class="input" id="nameInput" type="text" autocomplete="off"></div>
       <div class="form-group"><label for="approvalInput">批准</label><input class="input" id="approvalInput" type="text" autocomplete="off"></div>
       <div class="form-group"><label for="numberInput">鉴定</label><select class="input" id="numberInput"><option value=""></option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
-      <div class="form-group full"><label for="remarksInput">备注</label><textarea class="input" id="remarksInput" rows="4"></textarea></div>
+      <div class="form-group full"><label for="remarksInput">成果</label><textarea class="input" id="remarksInput" rows="4"></textarea></div>
       <button class="add-button" type="submit">提交</button>
     </form>
   </section>
   <section>
-    <div class="list-header"><h2>总表</h2><span class="count-badge" id="countDisplay">0/0</span></div>
+    <div class="list-header"><h2>总表</h2><span class="count-badge" id="countDisplay">0</span></div>
     <div class="papers-list" id="fundList"><div class="empty-state">暂无记录</div></div>
   </section>
 </main>
@@ -88,7 +89,7 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
         <div class="form-group"><label for="editName">姓名</label><input class="input" id="editName" type="text"></div>
         <div class="form-group"><label for="editApproval">批准</label><input class="input" id="editApproval" type="text"></div>
         <div class="form-group"><label for="editNumber">鉴定</label><select class="input" id="editNumber"><option value=""></option><option>优秀</option><option>良好</option><option>合格</option><option>免于鉴定</option></select></div>
-        <div class="form-group full"><label for="editRemarks">备注</label><textarea class="input" id="editRemarks" rows="4"></textarea></div>
+        <div class="form-group full"><label for="editRemarks">成果</label><textarea class="input" id="editRemarks" rows="4"></textarea></div>
       </form>
     </div>
     <div class="dialog-actions">
@@ -158,29 +159,26 @@ textarea.input{min-height:115px;resize:vertical;line-height:1.55;white-space:pre
   }
   function render(){
     const list=$('fundList');list.replaceChildren();
-    const rows=sorted();$('countDisplay').textContent=rows.length+'/'+rows.length;
+    const rows=sorted();$('countDisplay').textContent=String(rows.length);
     $('exportBtn').disabled=!rows.length;
     if(!rows.length){list.append(make('div','empty-state','暂无记录'));return}
     for(const v of rows){
       const card=make('article','paper-item');
       const title=make('div','paper-title',v.topic);card.append(title);
       const meta=make('div','paper-meta');
-      for(const [label,value] of [['姓名',v.name],['批准',v.approval],['鉴定',v.number],['备注',v.remarks]]){
-        if(!value)continue;
+      let appraisalRow=null;
+      for(const [label,value] of [['姓名',v.name],['批准',v.approval],['成果',v.remarks],['鉴定',v.number]]){
+        if(!value&&!(unlocked&&label==='鉴定'))continue;
         const row=make('div','meta-row');row.append(make('span','meta-label',label+'：'));
         row.append(make('span','meta-value',value));meta.append(row);
+        if(label==='鉴定')appraisalRow=row;
       }
       card.append(meta);
-      if(unlocked){
+      if(unlocked&&appraisalRow){
         const actions=make('div','paper-actions'),btn=make('button','edit-btn','编辑');
         btn.type='button';btn.addEventListener('click',()=>openEdit(v.id));
         actions.append(btn);
-        if(meta.lastElementChild){
-          meta.lastElementChild.append(actions);
-        }else{
-          title.classList.add('title-inline-edit');
-          title.replaceChildren(make('span','title-text',v.topic),actions);
-        }
+        appraisalRow.append(actions);
       }
       list.append(card);
     }
